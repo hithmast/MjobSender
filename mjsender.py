@@ -53,12 +53,12 @@ def send_email(sender_email, sender_password, recipient, subject, body, attachme
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Send emails to multiple recipients with attachments.')
-    parser.add_argument('-se', '--sender_email', type=str, help='Sender\'s email address.')
-    parser.add_argument('-sp', '--sender_password', type=str, help='Sender\'s email password.')
-    parser.add_argument('-rf', '--recipient_file', type=str, help='File containing list of recipient email addresses.')
-    parser.add_argument('-sb', '--subject', type=str, help='Email subject.')
-    parser.add_argument('-bd', '--body', type=str, help='Email body.')
-    parser.add_argument('-af', '--attachment_file', type=str, help='Attachment file.')
+    parser.add_argument('-se', '--sender_email', type=str, required=True, help='Sender\'s email address.')
+    parser.add_argument('-sp', '--sender_password', type=str, required=True, help='Sender\'s email password.')
+    parser.add_argument('-rf', '--recipient_file', type=str, required=True, help='File containing list of recipient email addresses.')
+    parser.add_argument('-sb', '--subject', type=str, required=True, help='Email subject.')
+    parser.add_argument('-bd', '--body', type=str, required=True, help='Email body.')
+    parser.add_argument('-af', '--attachment_file', type=str, required=True, help='Attachment file.')
     parser.add_argument('-ss', '--smtp_server', type=str, default='smtp.gmail.com', help='SMTP server address.')
     parser.add_argument('-pt', '--smtp_port', type=int, default=587, help='SMTP server port number.')
     parser.add_argument('-d', '--delay', type=int, default=10, help='Delay between sending each email (in seconds).')
@@ -72,18 +72,18 @@ if __name__ == "__main__":
     else:
         logging.basicConfig(level=logging.INFO)
 
-    # Read sender's email and password from command-line arguments
-    sender_email = args.sender_email
-    sender_password = args.sender_password
-
     # Read recipient emails from file
-    with open(args.recipient_file, 'r') as file:
-        recipients = file.readlines()
+    try:
+        with open(args.recipient_file, 'r') as file:
+            recipients = file.readlines()
+    except FileNotFoundError:
+        logging.error(colored("Recipient file not found.", "red"))
+        exit(1)
 
     # Strip newlines from recipient emails
     recipients = [recipient.strip() for recipient in recipients]
 
     # Send emails with the specified configuration
     for recipient in recipients:
-        send_email(sender_email, sender_password, recipient, args.subject, args.body, args.attachment_file, args.smtp_server, args.smtp_port)
+        send_email(args.sender_email, args.sender_password, recipient, args.subject, args.body, args.attachment_file, args.smtp_server, args.smtp_port)
         time.sleep(args.delay)  # Delay in seconds
