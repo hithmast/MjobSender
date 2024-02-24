@@ -18,9 +18,14 @@ def read_recipients(file_path):
     try:
         with open(file_path, 'r') as file:
             recipients = [line.strip() for line in file.readlines()]
+            if not recipients:
+                raise ValueError("Recipient list is empty.")
         return recipients
     except FileNotFoundError:
         logging.error(colored("Recipient file not found.", "red"))
+        exit(1)
+    except ValueError as ve:
+        logging.error(colored(f"Error in recipient list: {str(ve)}", "red"))
         exit(1)
 
 def send_email(sender_email, sender_password, recipient, subject, body, attachment_file, smtp_server, smtp_port):
@@ -59,7 +64,7 @@ def send_emails(sender_email, sender_password, recipients, subject, body, attach
 
 def parse_arguments():
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description='Send emails to multiple recipients with attachments.')
+    parser = argparse.ArgumentParser(description='Send emails to multiple recipients with attachments.', add_help=False)
     parser.add_argument('-se', '--sender_email', type=str, required=True, help='Sender\'s email address.')
     parser.add_argument('-sp', '--sender_password', type=str, required=True, help='Sender\'s email password.')
     parser.add_argument('-rf', '--recipient_file', type=str, required=True, help='File containing list of recipient email addresses.')
@@ -71,7 +76,15 @@ def parse_arguments():
     parser.add_argument('-dmin', '--delay_min', type=int, default=60, help='Minimum delay in seconds.')
     parser.add_argument('-dmax', '--delay_max', type=int, default=180, help='Maximum delay in seconds.')
     parser.add_argument('-o', '--output_file', type=str, help='Output file for logging the results.')
-    return parser.parse_args()
+
+    args = parser.parse_args()
+
+    if not all([args.sender_email, args.sender_password, args.recipient_file, args.subject, args.body, args.attachment_file]):
+        parser.print_help()
+        print("\nError: Missing required arguments.")
+        exit(1)
+    
+    return args
 
 if __name__ == "__main__":
     args = parse_arguments()
