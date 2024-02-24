@@ -79,11 +79,24 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    if not all([args.sender_email, args.sender_password, args.recipient_file, args.subject, args.body, args.attachment_file]):
-        parser.print_help()
-        print("\nError: Missing required arguments.")
+    missing_args = []
+    if not args.sender_email:
+        missing_args.append("-se/--sender_email")
+    if not args.sender_password:
+        missing_args.append("-sp/--sender_password")
+    if not args.recipient_file:
+        missing_args.append("-rf/--recipient_file")
+    if not args.subject:
+        missing_args.append("-sb/--subject")
+    if not args.body:
+        missing_args.append("-bd/--body")
+    if not args.attachment_file:
+        missing_args.append("-af/--attachment_file")
+
+    if missing_args:
+        print("Error: The following arguments are required:", ", ".join(missing_args))
         exit(1)
-    
+
     return args
 
 if __name__ == "__main__":
