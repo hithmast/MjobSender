@@ -7,7 +7,7 @@ mjobsender is a Python script for sending emails to multiple recipients with att
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/username/mjobsender.git
+   git clone https://github.com/hithmast/mjobsender.git
    ```
 
 2. Install dependencies:
@@ -17,7 +17,7 @@ mjobsender is a Python script for sending emails to multiple recipients with att
 
 ## Usage
 
-Describe how to use your project. Provide examples and explain key features.
+
 
 ## Contributing
 
