@@ -1,5 +1,6 @@
 import smtplib
 import time
+import random
 import logging
 import argparse
 from email.mime.multipart import MIMEMultipart
@@ -8,40 +9,38 @@ from email.mime.base import MIMEBase
 from email import encoders
 from termcolor import colored
 
-logging.basicConfig(level=logging.INFO)
+def setup_logger(output_file=None):
+    """Set up logging configuration."""
+    logging.basicConfig(filename=output_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def read_recipients(file_path):
+    """Read recipient emails from a file."""
+    try:
+        with open(file_path, 'r') as file:
+            recipients = [line.strip() for line in file.readlines()]
+        return recipients
+    except FileNotFoundError:
+        logging.error(colored("Recipient file not found.", "red"))
+        exit(1)
 
 def send_email(sender_email, sender_password, recipient, subject, body, attachment_file, smtp_server, smtp_port):
+    """Send an email to a single recipient."""
     try:
-        # Create a multipart message
         message = MIMEMultipart()
         message['From'] = sender_email
         message['To'] = recipient
         message['Subject'] = subject
-
-        # Add body to email
         message.attach(MIMEText(body, 'plain'))
 
-        # Open the file in binary mode
         with open(attachment_file, 'rb') as attachment:
-            # Add file as application/octet-stream
-            # Email client can usually download this automatically as attachment
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(attachment.read())
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f'attachment; filename= {attachment_file}')
+            message.attach(part)
 
-        # Encode file in ASCII characters to send by email    
-        encoders.encode_base64(part)
-
-        # Add header as key/value pair to attachment part
-        part.add_header(
-            'Content-Disposition',
-            f'attachment; filename= {attachment_file}',
-        )
-
-        # Add attachment to message and convert message to string
-        message.attach(part)
         text = message.as_string()
 
-        # Login to the SMTP server and send email
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(sender_email, sender_password)
@@ -51,7 +50,15 @@ def send_email(sender_email, sender_password, recipient, subject, body, attachme
     except Exception as e:
         logging.error(colored(f"Error sending email to {recipient}: {str(e)}", "red"))
 
-if __name__ == "__main__":
+def send_emails(sender_email, sender_password, recipients, subject, body, attachment_file, smtp_server, smtp_port, delay_min, delay_max):
+    """Send emails to multiple recipients."""
+    for recipient in recipients:
+        send_email(sender_email, sender_password, recipient, subject, body, attachment_file, smtp_server, smtp_port)
+        random_delay = random.randint(delay_min, delay_max)
+        time.sleep(random_delay)
+
+def parse_arguments():
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description='Send emails to multiple recipients with attachments.')
     parser.add_argument('-se', '--sender_email', type=str, required=True, help='Sender\'s email address.')
     parser.add_argument('-sp', '--sender_password', type=str, required=True, help='Sender\'s email password.')
@@ -61,29 +68,13 @@ if __name__ == "__main__":
     parser.add_argument('-af', '--attachment_file', type=str, required=True, help='Attachment file.')
     parser.add_argument('-ss', '--smtp_server', type=str, default='smtp.gmail.com', help='SMTP server address.')
     parser.add_argument('-pt', '--smtp_port', type=int, default=587, help='SMTP server port number.')
-    parser.add_argument('-d', '--delay', type=int, default=10, help='Delay between sending each email (in seconds).')
+    parser.add_argument('-dmin', '--delay_min', type=int, default=60, help='Minimum delay in seconds.')
+    parser.add_argument('-dmax', '--delay_max', type=int, default=180, help='Maximum delay in seconds.')
     parser.add_argument('-o', '--output_file', type=str, help='Output file for logging the results.')
+    return parser.parse_args()
 
-    args = parser.parse_args()
-
-    # Setup logging to both console and file
-    if args.output_file:
-        logging.basicConfig(filename=args.output_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    else:
-        logging.basicConfig(level=logging.INFO)
-
-    # Read recipient emails from file
-    try:
-        with open(args.recipient_file, 'r') as file:
-            recipients = file.readlines()
-    except FileNotFoundError:
-        logging.error(colored("Recipient file not found.", "red"))
-        exit(1)
-
-    # Strip newlines from recipient emails
-    recipients = [recipient.strip() for recipient in recipients]
-
-    # Send emails with the specified configuration
-    for recipient in recipients:
-        send_email(args.sender_email, args.sender_password, recipient, args.subject, args.body, args.attachment_file, args.smtp_server, args.smtp_port)
-        time.sleep(args.delay)  # Delay in seconds
+if __name__ == "__main__":
+    args = parse_arguments()
+    setup_logger(args.output_file)
+    recipients = read_recipients(args.recipient_file)
+    send_emails(args.sender_email, args.sender_password, recipients, args.subject, args.body, args.attachment_file, args.smtp_server, args.smtp_port, args.delay_min, args.delay_max)
